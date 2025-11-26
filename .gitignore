@@ -1,0 +1,49 @@
+# Go-specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+go.work
+
+# Build artifacts
+bin/
+build/
+dist/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# GoSniffer specific
+# Root CA files (sensitive - do not commit)
+ca-cert.pem
+ca-key.pem
+.gosniffer/
+
+# Logs
+*.log
+
+# Test coverage
+coverage.out
+*.coverprofile
+
+# Temporary files
+*.tmp
+*.bak
+.claude/

@@ -31,7 +31,40 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+**I. Go Concurrency Idioms**
+- [ ] Connection handling uses dedicated goroutines with proper cleanup
+- [ ] Inter-goroutine communication uses channels (not shared memory + locks)
+- [ ] Context cancellation propagates through goroutine hierarchies
+- [ ] Worker pools are used for CPU-bound operations (if applicable)
+
+**II. Rigorous Error Handling**
+- [ ] All network operations check errors explicitly
+- [ ] Errors are wrapped with context (`fmt.Errorf` with `%w`)
+- [ ] Transient vs permanent errors are distinguished
+- [ ] Cleanup is guaranteed via `defer` statements
+- [ ] Public API error conditions are documented
+
+**III. Secure TLS Interception** *(if feature involves TLS)*
+- [ ] Certificate generation uses `crypto/rand`
+- [ ] Private keys meet minimum strength requirements (2048-bit RSA / P-256 ECDSA)
+- [ ] Certificate operations are logged with fingerprints
+- [ ] Certificate caching has bounds (time + memory limits)
+- [ ] TLS validation checks hostname, expiration, chain of trust
+- [ ] TLS version requirements are met (TLS 1.2 min, 1.3 preferred)
+
+**IV. Performance & Efficiency** *(if feature is performance-critical)*
+- [ ] Latency impact measured and within budget (<5ms p99 overhead)
+- [ ] Hot paths minimize allocations (buffer pools, zero-copy)
+- [ ] Benchmarks exist for critical operations
+- [ ] pprof endpoints available for profiling
+
+**V. Simplicity & Maintainability**
+- [ ] Code prioritizes readability over cleverness
+- [ ] Abstractions solve concrete problems (YAGNI applied)
+- [ ] Dependencies are justified (prefer stdlib)
+- [ ] Public APIs are minimal and hard to misuse
+- [ ] Magic numbers are named constants with explanatory comments
+- [ ] Protocol logic references specifications (RFC numbers)
 
 ## Project Structure
 

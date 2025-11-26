@@ -100,6 +100,25 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+### Security Requirements *(include if feature handles sensitive data or network operations)*
+
+- **SR-001**: [Security requirement, e.g., "All TLS connections MUST validate certificates"]
+- **SR-002**: [Security requirement, e.g., "Private keys MUST use minimum 2048-bit RSA"]
+- **SR-003**: [Security requirement, e.g., "All user input MUST be validated and sanitized"]
+- **SR-004**: [Security requirement, e.g., "Security events MUST be logged with audit trail"]
+- **SR-005**: [Security requirement, e.g., "DoS protection MUST include rate limiting"]
+
+*Note: Reference constitution principle III (Secure TLS Interception) when applicable*
+
+### Performance Requirements *(include if feature is performance-critical)*
+
+- **PR-001**: [Performance requirement, e.g., "Latency overhead MUST be <5ms p99"]
+- **PR-002**: [Performance requirement, e.g., "System MUST handle 10k concurrent connections"]
+- **PR-003**: [Performance requirement, e.g., "Memory usage MUST not exceed 500MB under load"]
+- **PR-004**: [Performance requirement, e.g., "Benchmarks MUST exist for critical paths"]
+
+*Note: Reference constitution principle IV (Performance & Efficiency) for measurable targets*
+
 ## Success Criteria *(mandatory)*
 
 <!--

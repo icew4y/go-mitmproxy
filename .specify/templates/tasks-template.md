@@ -150,11 +150,33 @@ Examples of foundational tasks (adjust based on your project):
 
 **Purpose**: Improvements that affect multiple user stories
 
+### Concurrency & Performance *(if applicable - see constitution principle I & IV)*
+- [ ] TXXX [P] Add race detection tests (`go test -race`) for all concurrent code
+- [ ] TXXX [P] Profile critical paths with pprof (CPU and memory)
+- [ ] TXXX Implement buffer pools for hot paths to reduce allocations
+- [ ] TXXX Add benchmarks for connection handling, data relay, and TLS operations
+- [ ] TXXX Verify context cancellation propagates correctly through goroutine trees
+- [ ] TXXX Validate worker pool configurations prevent goroutine explosion
+
+### Security Hardening *(if applicable - see constitution principle III)*
+- [ ] TXXX [P] Audit certificate generation for crypto/rand usage
+- [ ] TXXX [P] Verify private key strength requirements (2048-bit RSA / P-256 ECDSA)
+- [ ] TXXX Implement certificate operation logging with fingerprints
+- [ ] TXXX Add certificate cache bounds (time + memory limits)
+- [ ] TXXX Verify TLS validation checks (hostname, expiration, chain of trust)
+- [ ] TXXX Scan dependencies for vulnerabilities (`govulncheck`)
+- [ ] TXXX Sanitize all user-controlled data in logs (prevent log injection)
+
+### Error Handling *(see constitution principle II)*
+- [ ] TXXX [P] Review all network operations for explicit error checks
+- [ ] TXXX Ensure errors are wrapped with context (`fmt.Errorf` with `%w`)
+- [ ] TXXX Verify cleanup with `defer` statements for all resource allocations
+- [ ] TXXX Document error conditions in public API functions
+
+### General Polish
 - [ ] TXXX [P] Documentation updates in docs/
-- [ ] TXXX Code cleanup and refactoring
-- [ ] TXXX Performance optimization across all stories
+- [ ] TXXX Code cleanup and refactoring (maintain simplicity - principle V)
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
-- [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
 ---
