@@ -15,7 +15,7 @@
 
 ## Task Summary
 
-- **Total Tasks**: 117 (27 completed, 90 remaining)
+- **Total Tasks**: 155 (47 completed, 108 remaining)
 - **Phase 1 (Setup)**: T001-T004 (4 tasks) ✓ Complete
 - **Phase 2 (Foundational)**: T005-T011 (7 tasks) ✓ Complete
 - **Phase 3 (HTTP MVP)**: T012-T021 (10 tasks) ✓ Complete
@@ -23,6 +23,7 @@
 - **Phase 5 (Graceful Shutdown)**: T048-T058 (11 tasks)
 - **Phase 6 (Polish)**: T059-T090 (32 tasks)
 - **Phase 7 (WebSocket MITM)**: T091-T117 (27 tasks) - Optional
+- **Phase 8 (TLS Fingerprinting)**: T118-T155 (38 tasks) - Optional
 
 ## Path Conventions
 
@@ -273,6 +274,80 @@
 
 ---
 
+## Phase 8: TLS Fingerprint Spoofing (Priority: P4 - Optional)
+
+**Purpose**: Mimic browser TLS fingerprints to bypass TLS fingerprinting-based detection
+
+**Goal**: Proxy can impersonate Chrome/Firefox/Safari TLS Client Hello to avoid bot detection and fingerprinting systems
+
+**Note**: This phase requires `utls` third-party library (constitution Principle V exception - see plan.md for justification)
+
+**Independent Test**: Configure `--tls-fingerprint chrome`, connect through proxy to ja3er.com or tls.peet.ws, verify JA3 hash matches Chrome 120+ fingerprint
+
+### Fingerprint Profiles & Research
+
+- [ ] T118 [P] [US4] Research current browser TLS fingerprints (Chrome 120+, Firefox 121+, Safari 17+) - cipher suites, curves, extensions, versions
+- [ ] T119 [P] [US4] Create fingerprint profile structure in pkg/tls/fingerprint.go (cipher suites, curves, extensions, TLS versions)
+- [ ] T120 [P] [US4] Implement Chrome 120+ fingerprint profile with accurate JA3 parameters
+- [ ] T121 [P] [US4] Implement Firefox 121+ fingerprint profile with accurate JA3 parameters
+- [ ] T122 [P] [US4] Implement Safari 17+ fingerprint profile with accurate JA3 parameters
+- [ ] T123 [US4] Add custom fingerprint loader (read from JSON config file)
+- [ ] T124 [US4] Add fingerprint validation (ensure cipher/curve compatibility, TLS 1.2+ minimum per SR-010)
+
+### utls Library Integration
+
+- [ ] T125 [US4] Add utls dependency to go.mod: github.com/refraction-networking/utls
+- [ ] T126 [P] [US4] Create utls wrapper in pkg/tls/utls_wrapper.go (convert fingerprint profiles to utls.ClientHelloID)
+- [ ] T127 [US4] Implement fingerprint-to-utls-config converter (map profiles to utls parameters)
+- [ ] T128 [US4] Add utls.UConn creation helper function (wraps net.Conn with utls fingerprint)
+- [ ] T129 [US4] Implement TLS handshake with fingerprinted client in pkg/tls/utls_wrapper.go
+
+### MITM Integration
+
+- [ ] T130 [US4] Modify pkg/proxy/mitm.go upstream TLS connection to use fingerprinted handshake
+- [ ] T131 [US4] Add fingerprint selection logic (choose profile based on config)
+- [ ] T132 [US4] Replace standard tls.Dial with utls.UConn for upstream connections when fingerprinting enabled
+- [ ] T133 [US4] Add fallback handling for fingerprint-incompatible servers (log error, fail gracefully per SR-009)
+- [ ] T134 [US4] Add fingerprint logging (log which profile is being used per connection)
+
+### CLI & Configuration
+
+- [ ] T135 [US4] Add --tls-fingerprint flag in cmd/gosniffer/main.go (values: none|chrome|firefox|safari|custom)
+- [ ] T136 [US4] Add --tls-fingerprint-config flag (path to custom JSON fingerprint config)
+- [ ] T137 [US4] Wire up fingerprint initialization in main.go (load profile, validate, pass to MITM handler)
+- [ ] T138 [US4] Add fingerprint info to startup logs (which profile is active, validation results)
+- [ ] T139 [US4] Add fingerprint selection to proxy configuration structure
+
+### Testing & Validation
+
+- [ ] T140 [P] [US4] Create fingerprint validation tests in pkg/tls/fingerprint_test.go
+- [ ] T141 [P] [US4] Create utls wrapper tests in pkg/tls/utls_wrapper_test.go
+- [ ] T142 [US4] Test against ja3er.com - verify Chrome fingerprint matches
+- [ ] T143 [US4] Test against ja3er.com - verify Firefox fingerprint matches
+- [ ] T144 [US4] Test against ja3er.com - verify Safari fingerprint matches
+- [ ] T145 [US4] Test against tls.peet.ws (alternative fingerprinting service)
+- [ ] T146 [US4] Test with Cloudflare-protected site (known to use TLS fingerprinting)
+- [ ] T147 [US4] Test with Akamai-protected site (bot detection via fingerprinting)
+- [ ] T148 [US4] Verify custom fingerprint JSON loading and validation
+- [ ] T149 [US4] Test fallback behavior with incompatible fingerprint/server combination
+- [ ] T150 [US4] Run govulncheck on utls dependency: `go run golang.org/x/vuln/cmd/govulncheck ./...`
+
+### Documentation
+
+- [ ] T151 [P] [US4] Document utls dependency in README.md with security implications
+- [ ] T152 [P] [US4] Create example custom fingerprint JSON config file
+- [ ] T153 [US4] Add fingerprint spoofing usage guide to README.md
+- [ ] T154 [US4] Document JA3 testing procedure with ja3er.com/tls.peet.ws
+- [ ] T155 [US4] Update constitution.md with Principle V exception justification
+
+**Checkpoint**: TLS fingerprint spoofing fully functional - proxy successfully mimics browser TLS handshakes and bypasses fingerprinting-based detection
+
+**Performance Target**: <5ms overhead for fingerprint application per connection
+
+**Constitution Note**: This phase introduces `utls` third-party dependency (exception to Principle V). Justification documented in plan.md - TLS fingerprinting is impossible with Go stdlib alone. Mitigation: feature flag (opt-in), isolated to pkg/tls/, regular security audits.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -284,6 +359,7 @@
   - Or sequentially in priority order (P1 → P2 → P3)
 - **Polish (Phase 6)**: Depends on all desired user stories being complete
 - **WebSocket MITM (Phase 7)**: Optional - Depends on Phase 4 (HTTPS MITM) completion, can proceed in parallel with Phase 5/6
+- **TLS Fingerprinting (Phase 8)**: Optional - Depends on Phase 4 (HTTPS MITM) completion, can proceed in parallel with Phase 5/6/7
 
 ### User Story Dependencies
 
@@ -306,6 +382,7 @@
 - **US3**: T048-T049 can run in parallel
 - **Polish**: Most audit/verification tasks (marked [P]) can run in parallel
 - **WebSocket (Phase 7)**: T091-T096 (frame parser) || T097-T101 (message handler) can run in parallel, followed by integration
+- **TLS Fingerprinting (Phase 8)**: T118-T122 (browser profiles) || T126-T129 (utls wrapper) can run in parallel, followed by integration
 
 ---
 

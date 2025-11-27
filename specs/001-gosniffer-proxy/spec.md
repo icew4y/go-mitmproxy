@@ -60,6 +60,23 @@ An operator running GoSniffer in a terminal or automated environment needs to st
 
 ---
 
+### User Story 4 - TLS Fingerprint Spoofing (Priority: P4)
+
+A security researcher or automation engineer needs to bypass TLS fingerprinting-based detection mechanisms deployed by servers (e.g., Cloudflare, Akamai, bot protection services). They configure GoSniffer to mimic the TLS Client Hello fingerprint of a specific browser (Chrome, Firefox, or Safari). When establishing upstream TLS connections, GoSniffer presents a Client Hello that matches the target browser's JA3 fingerprint, making the proxy traffic indistinguishable from genuine browser traffic at the TLS layer.
+
+**Why this priority**: TLS fingerprinting is an advanced anti-bot and security technique. While not essential for basic proxying, it's critical for security research, web scraping, and bypassing sophisticated detection systems. This is lower priority than core MITM functionality but valuable for specialized use cases.
+
+**Independent Test**: Can be fully tested by configuring `--tls-fingerprint chrome`, connecting through the proxy to a TLS fingerprinting service (e.g., ja3er.com, tls.peet.ws), and verifying that the reported JA3 hash matches Chrome's fingerprint rather than Go's default TLS implementation.
+
+**Acceptance Scenarios**:
+
+1. **Given** GoSniffer is configured with `--tls-fingerprint chrome`, **When** establishing an upstream TLS connection, **Then** the TLS Client Hello matches Chrome 120+ fingerprint (cipher suites, curves, extensions in correct order) and JA3 hash verification services confirm the match
+2. **Given** GoSniffer is configured with `--tls-fingerprint firefox`, **When** proxying HTTPS traffic, **Then** the upstream server observes a Firefox 121+ TLS fingerprint
+3. **Given** a custom fingerprint JSON configuration is provided via `--tls-fingerprint-config custom.json`, **When** the proxy starts, **Then** the custom fingerprint parameters (cipher suites, curves, extensions) are validated and applied to upstream connections
+4. **Given** GoSniffer is using a spoofed fingerprint, **When** the upstream server requires specific TLS features, **Then** the connection succeeds if the fingerprint is compatible, or fails gracefully with a clear error message if incompatible
+
+---
+
 ### Edge Cases
 
 - What happens when the client does not trust the GoSniffer root CA during an HTTPS request? (Expected: TLS handshake fails with certificate error on client side; GoSniffer logs the connection attempt but cannot intercept)
@@ -82,6 +99,10 @@ An operator running GoSniffer in a terminal or automated environment needs to st
 - **FR-008**: System MUST register signal handlers for SIGINT and SIGTERM to initiate graceful shutdown
 - **FR-009**: During graceful shutdown, system MUST stop accepting new connections while allowing in-flight requests to complete within a timeout period (default 30 seconds)
 - **FR-010**: System MUST provide a command-line interface to start the proxy with configurable parameters (listen address, root CA path)
+- **FR-011**: System MUST support spoofing TLS Client Hello fingerprints to mimic Chrome, Firefox, and Safari browsers
+- **FR-012**: System MUST allow custom TLS fingerprint configuration via JSON file
+- **FR-013**: System MUST validate TLS fingerprint configuration before applying it to connections
+- **FR-014**: System MUST log which TLS fingerprint is being used when fingerprint spoofing is enabled
 
 ### Assumptions
 
@@ -110,6 +131,8 @@ An operator running GoSniffer in a terminal or automated environment needs to st
 - **SR-006**: TLS version for client and upstream connections MUST support TLS 1.2 minimum, with TLS 1.3 preferred (per constitution principle III)
 - **SR-007**: Certificate generation errors MUST abort the connection without fallback to insecure modes
 - **SR-008**: System MUST NOT log sensitive data (private keys, authentication tokens, request bodies) to console output
+- **SR-009**: TLS fingerprint configuration MUST be validated for cipher suite and curve compatibility before use
+- **SR-010**: TLS fingerprinting MUST NOT weaken TLS security (maintain TLS 1.2+ minimum version)
 
 ### Performance Requirements
 
@@ -118,6 +141,7 @@ An operator running GoSniffer in a terminal or automated environment needs to st
 - **PR-003**: Certificate generation for new hostnames MUST complete within 100ms to avoid noticeable request delays
 - **PR-004**: Memory usage for certificate caching MUST be bounded to prevent exhaustion under load (per constitution principle III)
 - **PR-005**: System MUST include benchmarks for critical paths: connection setup, HTTP relay, HTTPS MITM handshake, and header injection
+- **PR-006**: TLS fingerprint application MUST add <5ms overhead to upstream connection establishment
 
 ## Success Criteria *(mandatory)*
 
@@ -130,3 +154,5 @@ An operator running GoSniffer in a terminal or automated environment needs to st
 - **SC-005**: Graceful shutdown completes within 30 seconds for typical workloads, with no orphaned connections or process hangs
 - **SC-006**: Certificate generation for a new hostname completes in <100ms
 - **SC-007**: The system operates continuously for 1 hour under load (50 req/sec mixed HTTP/HTTPS) without crashes or memory leaks
+- **SC-008**: TLS fingerprinting services (ja3er.com, tls.peet.ws) confirm that spoofed fingerprints match target browsers (Chrome, Firefox, Safari)
+- **SC-009**: Servers using TLS fingerprinting for bot detection (Cloudflare, Akamai) accept connections when appropriate browser fingerprint is spoofed
