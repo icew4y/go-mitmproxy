@@ -181,6 +181,41 @@ No complexity justifications required. The design adheres to all constitution pr
 
 **Constitution Check**: ✅ PASSED (all 5 principles satisfied)
 
+**Phase 2: TLS Fingerprint Spoofing Extension** ✅ DESIGN ADDED (User Story 4)
+- **Purpose**: Enable mimicking of browser TLS Client Hello fingerprints to bypass detection
+- **Technical Approach**:
+  - **Challenge**: Go's `crypto/tls` does not expose APIs to fully customize TLS Client Hello
+  - **Options Evaluated**:
+    1. **Custom fork of `crypto/tls`**: Full control, but maintenance burden and complexity
+    2. **utls library** (github.com/refraction-networking/utls): Production-ready TLS fingerprinting library
+  - **Decision**: Use `utls` library (constitution Principle V exception - documented below)
+  - **Rationale**:
+    - `utls` is specifically designed for TLS fingerprinting (used by Tor, censorship circumvention tools)
+    - Active maintenance, security audits, proven in production
+    - ~10k LOC external dependency vs ~2-3k LOC custom implementation + ongoing maintenance
+    - Risk mitigation: Isolated to fingerprinting module, can be made optional feature flag
+- **Architecture**:
+  - New package: `pkg/tls/fingerprint.go` (fingerprint profiles)
+  - Fingerprint profiles: Chrome 120+, Firefox 121+, Safari 17+ (cipher suites, curves, extensions)
+  - Custom profile support via JSON configuration
+  - Integration: Override `tls.Config` in `pkg/proxy/mitm.go` when establishing upstream connections
+- **Data Storage**: Fingerprint profiles as Go structs; custom profiles from JSON files
+- **Performance Target**: <5ms overhead for fingerprint application (pre-computed configs)
+- **Security Considerations**:
+  - Validate fingerprint configs to ensure TLS 1.2+ minimum (SR-010)
+  - Log fingerprint selection for audit trail
+  - Graceful fallback: If fingerprint incompatible with server, log error and fail connection (no insecure fallback)
+
+**Constitution Exception - User Story 4**:
+- **Principle V (Prefer stdlib)**: TLS fingerprint spoofing requires `utls` third-party library
+- **Justification**: Impossible with stdlib - Go's `crypto/tls` intentionally hides ClientHello internals
+- **Mitigation**:
+  - Feature flag `--enable-tls-fingerprint` (default: disabled) - users opt-in
+  - Isolated to `pkg/tls/` package - core proxy remains stdlib-only
+  - Regular `govulncheck` scans on `utls` dependency
+  - Document dependency and security implications in README
+  - Core proxy (User Stories 1-3) remains zero-dependency
+
 **Next Step**: Run `/speckit.tasks` to generate implementation tasks (tasks.md)
 
 **Readiness**: Design is complete and validated. Implementation can begin immediately following task generation.
