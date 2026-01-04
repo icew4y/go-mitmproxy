@@ -27,19 +27,19 @@ const (
 // - T029: LRU eviction policy (max 1000 entries)
 // - T030: TTL cleanup goroutine (30-day expiration)
 type CertificateCache struct {
-	mu       sync.RWMutex                   // Protects cache and lruList
-	cache    map[string]*cacheEntry         // hostname -> cache entry
-	lruList  *list.List                     // LRU tracking (most recent at back)
-	maxSize  int                            // Maximum cache size
-	ttl      time.Duration                  // Certificate TTL
-	stopChan chan struct{}                  // Signal to stop cleanup goroutine
-	wg       sync.WaitGroup                 // Wait for cleanup goroutine
+	mu       sync.RWMutex           // Protects cache and lruList
+	cache    map[string]*cacheEntry // hostname -> cache entry
+	lruList  *list.List             // LRU tracking (most recent at back)
+	maxSize  int                    // Maximum cache size
+	ttl      time.Duration          // Certificate TTL
+	stopChan chan struct{}          // Signal to stop cleanup goroutine
+	wg       sync.WaitGroup         // Wait for cleanup goroutine
 }
 
 // cacheEntry wraps a certificate bundle with LRU tracking
 type cacheEntry struct {
-	bundle    *CertificateBundle
-	lruElement *list.Element  // Pointer to element in LRU list
+	bundle     *CertificateBundle
+	lruElement *list.Element // Pointer to element in LRU list
 }
 
 // NewCertificateCache creates a new certificate cache and starts the TTL cleanup goroutine

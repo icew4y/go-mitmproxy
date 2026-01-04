@@ -17,9 +17,9 @@ import (
 
 // CertificateBundle represents a generated leaf certificate with its private key
 type CertificateBundle struct {
-	PrivateKey  interface{}        // *rsa.PrivateKey or *ecdsa.PrivateKey
+	PrivateKey  interface{} // *rsa.PrivateKey or *ecdsa.PrivateKey
 	Certificate *x509.Certificate
-	TLSCert     *tls.Certificate   // Ready-to-use tls.Certificate
+	TLSCert     *tls.Certificate // Ready-to-use tls.Certificate
 	Hostname    string
 	CreatedAt   time.Time
 }

@@ -26,9 +26,10 @@ const (
 // MITMHandler handles HTTPS CONNECT requests with TLS interception
 // Implements T031-T045: Full HTTPS MITM functionality
 type MITMHandler struct {
-	ca        *ca.CA
-	certCache *ca.CertificateCache
-	logger    *logger.Logger
+	ca                  *ca.CA
+	certCache           *ca.CertificateCache
+	logger              *logger.Logger
+	shutdownCoordinator *ShutdownCoordinator
 }
 
 // NewMITMHandler creates a new MITM handler
@@ -37,7 +38,13 @@ func NewMITMHandler(rootCA *ca.CA, certCache *ca.CertificateCache, log *logger.L
 		ca:        rootCA,
 		certCache: certCache,
 		logger:    log,
+		// Shutdown coordinator will be set by SetShutdownCoordinator
 	}
+}
+
+// SetShutdownCoordinator sets the shutdown coordinator for connection tracking
+func (m *MITMHandler) SetShutdownCoordinator(sc *ShutdownCoordinator) {
+	m.shutdownCoordinator = sc
 }
 
 // HandleCONNECT handles HTTPS CONNECT requests and performs TLS MITM
@@ -83,6 +90,19 @@ func (m *MITMHandler) HandleCONNECT(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer clientConn.Close()
+
+	// T058: Track connection for graceful shutdown (if coordinator is set)
+	var connID string
+	if m.shutdownCoordinator != nil {
+		// Check if shutdown is in progress - reject new connections
+		if m.shutdownCoordinator.IsShuttingDown() {
+			m.logger.LogInfo(fmt.Sprintf("Rejecting CONNECT to %s - shutdown in progress", hostname))
+			return
+		}
+
+		connID = m.shutdownCoordinator.TrackConnection(clientConn)
+		defer m.shutdownCoordinator.UntrackConnection(connID)
+	}
 
 	// T033: Send "200 Connection Established" response
 	response := "HTTP/1.1 200 Connection Established\r\n\r\n"
@@ -202,7 +222,7 @@ func (m *MITMHandler) proxyHTTPSTraffic(clientConn *tls.Conn, upstreamConn *tls.
 
 	// Set longer timeout for large request bodies (uploads)
 	// Default Go http timeout is too short for large file uploads
-	clientConn.SetWriteDeadline(time.Time{}) // No write deadline on client
+	clientConn.SetWriteDeadline(time.Time{})   // No write deadline on client
 	upstreamConn.SetWriteDeadline(time.Time{}) // No write deadline on upstream
 	upstreamConn.SetReadDeadline(time.Time{})  // No read deadline on upstream
 
@@ -254,8 +274,8 @@ func (m *MITMHandler) proxyHTTPSTraffic(clientConn *tls.Conn, upstreamConn *tls.
 	if err := resp.Write(clientConn); err != nil {
 		// Check if error is due to client closing connection (expected for some cases)
 		if strings.Contains(err.Error(), "broken pipe") ||
-		   strings.Contains(err.Error(), "connection reset") ||
-		   strings.Contains(err.Error(), "wsasend") {
+			strings.Contains(err.Error(), "connection reset") ||
+			strings.Contains(err.Error(), "wsasend") {
 			// Client closed connection - this is normal, don't log as error
 			return
 		}
@@ -336,8 +356,8 @@ func (m *MITMHandler) handleKeepAlive(clientConn *tls.Conn, upstreamConn *tls.Co
 			resp.Body.Close()
 			// Don't log client-initiated disconnections as errors
 			if !strings.Contains(err.Error(), "broken pipe") &&
-			   !strings.Contains(err.Error(), "connection reset") &&
-			   !strings.Contains(err.Error(), "wsasend") {
+				!strings.Contains(err.Error(), "connection reset") &&
+				!strings.Contains(err.Error(), "wsasend") {
 				m.logger.LogError(fmt.Sprintf("failed to relay keep-alive response for %s", hostname), err)
 			}
 			return
