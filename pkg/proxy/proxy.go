@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"sync"
@@ -14,32 +13,36 @@ import (
 
 // ProxyServer represents an HTTP/HTTPS proxy server
 type ProxyServer struct {
-	addr        string
-	server      *http.Server
-	logger      *logger.Logger
-	mitmHandler *MITMHandler // HTTPS MITM handler (nil if HTTPS not enabled)
-	shutdown    chan struct{}
-	wg          sync.WaitGroup
-	mu          sync.Mutex
-	running     bool
+	addr                string
+	server              *http.Server
+	logger              *logger.Logger
+	mitmHandler         *MITMHandler // HTTPS MITM handler (nil if HTTPS not enabled)
+	shutdownCoordinator *ShutdownCoordinator
+	mu                  sync.Mutex
+	running             bool
 }
 
 // NewProxyServer creates a new proxy server instance (HTTP only)
 func NewProxyServer(addr string, logger *logger.Logger) *ProxyServer {
 	return &ProxyServer{
-		addr:     addr,
-		logger:   logger,
-		shutdown: make(chan struct{}),
+		addr:                addr,
+		logger:              logger,
+		shutdownCoordinator: NewShutdownCoordinator(logger),
 	}
 }
 
 // NewProxyServerWithMITM creates a new proxy server with HTTPS MITM support
 func NewProxyServerWithMITM(addr string, logger *logger.Logger, mitmHandler *MITMHandler) *ProxyServer {
+	sc := NewShutdownCoordinator(logger)
+
+	// Wire up shutdown coordinator with MITM handler for connection tracking
+	mitmHandler.SetShutdownCoordinator(sc)
+
 	return &ProxyServer{
-		addr:        addr,
-		logger:      logger,
-		mitmHandler: mitmHandler,
-		shutdown:    make(chan struct{}),
+		addr:                addr,
+		logger:              logger,
+		mitmHandler:         mitmHandler,
+		shutdownCoordinator: sc,
 	}
 }
 
@@ -93,33 +96,28 @@ func (p *ProxyServer) Shutdown(timeout time.Duration) error {
 
 	p.logger.LogInfo("Initiating graceful shutdown...")
 
-	// Create context with timeout for shutdown
+	// Create context with timeout for HTTP server shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// Shutdown HTTP server (stops accepting new connections, waits for active requests)
-	if err := p.server.Shutdown(ctx); err != nil {
-		return fmt.Errorf("proxy shutdown failed: %w", err)
-	}
-
-	// Wait for all goroutines to complete
-	done := make(chan struct{})
+	// Shutdown HTTP server (stops accepting new connections)
 	go func() {
-		p.wg.Wait()
-		close(done)
+		if err := p.server.Shutdown(ctx); err != nil {
+			p.logger.LogError("HTTP server shutdown", err)
+		}
 	}()
 
-	select {
-	case <-done:
-		p.logger.LogInfo("All connections closed. Exiting.")
-	case <-ctx.Done():
-		log.Println("[WARN] Shutdown timeout reached, forcefully closing remaining connections")
+	// Use shutdown coordinator to drain connections
+	if err := p.shutdownCoordinator.Shutdown(timeout); err != nil {
+		p.logger.LogError("shutdown coordinator", err)
+		// Continue shutdown even if error
 	}
 
 	p.mu.Lock()
 	p.running = false
 	p.mu.Unlock()
 
+	p.logger.LogInfo("Proxy server shutdown complete")
 	return nil
 }
 

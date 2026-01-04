@@ -145,17 +145,17 @@
 
 ### Implementation for User Story 3
 
-- [ ] T048 [P] [US3] Implement shutdown coordinator structure in pkg/proxy/shutdown.go
-- [ ] T049 [P] [US3] Implement connection tracking (map of active connections) in pkg/proxy/shutdown.go
-- [ ] T050 [US3] Implement context-based cancellation propagation in pkg/proxy/shutdown.go
-- [ ] T051 [US3] Implement shutdown signal (stop accepting new connections) in pkg/proxy/shutdown.go
-- [ ] T052 [US3] Implement connection draining with WaitGroup in pkg/proxy/shutdown.go
-- [ ] T053 [US3] Implement graceful shutdown timeout (30 seconds) in pkg/proxy/shutdown.go
-- [ ] T054 [US3] Implement forceful connection close after timeout in pkg/proxy/shutdown.go
-- [ ] T055 [US3] Register SIGINT/SIGTERM signal handlers in cmd/gosniffer/main.go
-- [ ] T056 [US3] Wire up shutdown coordinator with signal handlers in cmd/gosniffer/main.go
-- [ ] T057 [US3] Integrate connection tracking into HTTP handler in pkg/proxy/handler.go
-- [ ] T058 [US3] Integrate connection tracking into HTTPS MITM handler in pkg/proxy/mitm.go
+- [x] T048 [P] [US3] Implement shutdown coordinator structure in pkg/proxy/shutdown.go
+- [x] T049 [P] [US3] Implement connection tracking (map of active connections) in pkg/proxy/shutdown.go
+- [x] T050 [US3] Implement context-based cancellation propagation in pkg/proxy/shutdown.go
+- [x] T051 [US3] Implement shutdown signal (stop accepting new connections) in pkg/proxy/shutdown.go
+- [x] T052 [US3] Implement connection draining with WaitGroup in pkg/proxy/shutdown.go
+- [x] T053 [US3] Implement graceful shutdown timeout (30 seconds) in pkg/proxy/shutdown.go
+- [x] T054 [US3] Implement forceful connection close after timeout in pkg/proxy/shutdown.go
+- [x] T055 [US3] Register SIGINT/SIGTERM signal handlers in cmd/gosniffer/main.go
+- [x] T056 [US3] Wire up shutdown coordinator with signal handlers in cmd/gosniffer/main.go
+- [x] T057 [US3] Integrate connection tracking into HTTP handler in pkg/proxy/handler.go
+- [x] T058 [US3] Integrate connection tracking into HTTPS MITM handler in pkg/proxy/mitm.go
 
 **Checkpoint**: All user stories should now be independently functional - HTTP, HTTPS, and graceful shutdown
 
