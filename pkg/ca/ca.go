@@ -19,7 +19,7 @@ import (
 
 // CA represents a Certificate Authority with its private key and certificate
 type CA struct {
-	PrivateKey  interface{}        // *rsa.PrivateKey or *ecdsa.PrivateKey
+	PrivateKey  interface{} // *rsa.PrivateKey or *ecdsa.PrivateKey
 	Certificate *x509.Certificate
 	CertPEM     []byte
 	KeyPEM      []byte
